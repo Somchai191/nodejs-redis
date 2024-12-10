@@ -14,7 +14,7 @@ const { RedisStore } = require("connect-redis");
 const connectMongoDB = require("./modules/database/mongodb");
 const redis = require("./modules/database/redis");
 
-connectMongoDB();:
+connectMongoDB();
 (async () => {
   await redis.connect();
 })();
