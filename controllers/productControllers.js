@@ -25,9 +25,9 @@ const getProductById = async (req, res) => {
 
 // ADD a new product
 const addpro = async (req, res) => {
-    const { name, price, description } = req.body;
+    const { name, price, description,stok } = req.body;
     try {
-        const newProduct = new Product({ name, price, description });
+        const newProduct = new Product({ name, price, description,stok });
         await newProduct.save();
         res.status(201).json({ message: "Product created successfully", product: newProduct });
     } catch (error) {
