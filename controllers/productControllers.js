@@ -1,5 +1,4 @@
-const Product = require('../../schemas/v1/product.schema');
-
+const Product = require('../schemas/v1/product.schema');
 // GET all products
 const getpro = async (req, res) => {
     try {

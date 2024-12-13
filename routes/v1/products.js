@@ -1,20 +1,19 @@
 const express = require('express');
 const router = express.Router();
-const mongoose = require('mongoose');
-const Product = require('../../schemas/v1/product.schema');
 
 
 const {
     getpro,
     addpro,
     updatepro,
-    deletepro
+    deletepro,
+    getProductById
   } = require("../../controllers/productControllers");
 
 // GET all products
 router.get("/get",getpro);
 // get id product
-router.get("/get/:id",getpro);
+router.get("/get/:id",getProductById);
 
 // POST a new product
 router.post("/addpro",addpro);
