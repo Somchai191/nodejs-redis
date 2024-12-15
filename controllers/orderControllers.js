@@ -35,7 +35,8 @@ const getOrderById = async (req, res) => {
 const getOrdersByUserId = async (req, res) => {
     const { userId } = req.params;
     try {
-        const orders = await Order.find({ userId }).populate('items.productId');
+        // ดึงคำสั่งซื้อทั้งหมดที่มี userId โดยไม่ใช้ populate
+        const orders = await Order.find({ userId }).exec();
         if (!orders || orders.length === 0) {
             return res.status(404).json({ message: "No orders found for this user" });
         }
@@ -44,6 +45,7 @@ const getOrdersByUserId = async (req, res) => {
         res.status(500).json({ message: "Error retrieving orders", error: error.message });
     }
 };
+
 
 // POST a new order
 const Product = require('../schemas/v1/product.schema');
