@@ -42,11 +42,11 @@ const getOrdersByUserId = async (req, res) => {
 const Product = require('../schemas/v1/product.schema'); // ต้อง import โมเดล Product
 
 const addOrder = async (req, res) => {
-    const { userId, items, totalAmount, status, shippingAddress } = req.body;
+    const { userId, items, status, shippingAddress } = req.body;
 
     // ตรวจสอบข้อมูลที่จำเป็น
-    if (!userId || !items || !totalAmount || !shippingAddress) {
-        return res.status(400).json({ message: "Required fields: userId, items, totalAmount, shippingAddress" });
+    if (!userId || !items || !shippingAddress) {
+        return res.status(400).json({ message: "Required fields: userId, items, shippingAddress" });
     }
 
     try {
@@ -95,6 +95,7 @@ const addOrder = async (req, res) => {
         res.status(500).json({ message: "Failed to create order", error: error.message });
     }
 };
+
 
 
 // UPDATE order by ID
