@@ -4,17 +4,15 @@ const Order = require('../schemas/v1/order.schema');
 // GET all orders
 const getOrders = async (req, res) => {
     try {
-        // ดึงข้อมูลคำสั่งซื้อทั้งหมด พร้อมข้อมูลผู้ใช้ (name, email) และรายละเอียดสินค้า
-        const orders = await Order.find()
-            .populate('userId', 'name email')  // ดึง 'name' และ 'email' ของผู้ใช้
-            .populate('items.productId')  // ดึงข้อมูลสินค้าของแต่ละรายการ
-            .exec();
+        // ดึงข้อมูลคำสั่งซื้อทั้งหมดโดยไม่ใช้ populate
+        const orders = await Order.find().exec();
 
         res.status(200).json(orders);
     } catch (error) {
         res.status(500).json({ message: "Failed to retrieve orders", error: error.message });
     }
 };
+
 
 
 // GET order by ID
