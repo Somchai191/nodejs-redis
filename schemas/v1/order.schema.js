@@ -12,7 +12,7 @@ const orderSchema = new mongoose.Schema({
         default: Date.now, 
         description: "วันที่และเวลาที่คำสั่งซื้อถูกสร้าง"
     },
-    products: [
+    items: [
         {
             productId: { 
                 type: mongoose.Schema.Types.ObjectId, 
