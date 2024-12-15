@@ -39,22 +39,48 @@ const getOrdersByUserId = async (req, res) => {
 };
 
 // POST a new order
+const Product = require('../schemas/v1/product.schema'); // ต้อง import โมเดล Product
+
 const addOrder = async (req, res) => {
     const { userId, items, totalAmount, status, shippingAddress } = req.body;
 
+    // ตรวจสอบข้อมูลที่จำเป็น
     if (!userId || !items || !totalAmount || !shippingAddress) {
         return res.status(400).json({ message: "Required fields: userId, items, totalAmount, shippingAddress" });
     }
 
     try {
+        // ดึงข้อมูลสินค้า (name และ price) สำหรับแต่ละ productId ที่ส่งมา
+        const updatedItems = [];
+
+        for (let item of items) {
+            // ดึงข้อมูลจากฐานข้อมูล 'Product' โดยใช้ 'productId'
+            const product = await Product.findById(item.productId);
+
+            if (product) {
+                // เพิ่มชื่อสินค้า (name) และราคา (price) ลงในแต่ละรายการ
+                updatedItems.push({
+                    productId: item.productId,
+                    name: product.name,       // ชื่อสินค้าที่ดึงมาจากฐานข้อมูล
+                    price: product.price,     // ราคาสินค้าที่ดึงมาจากฐานข้อมูล
+                    quantity: item.quantity,  // จำนวนสินค้าที่รับมา
+                });
+            } else {
+                // ถ้าไม่พบสินค้าในฐานข้อมูล
+                return res.status(404).json({ message: `Product with ID ${item.productId} not found` });
+            }
+        }
+
+        // สร้างคำสั่งซื้อใหม่โดยใช้ข้อมูลที่ได้รับ
         const newOrder = new Order({
             userId,
-            items,
+            items: updatedItems,  // ใช้ข้อมูล items ที่มีชื่อและราคาที่เพิ่มมา
             totalAmount,
-            status: status || "Pending", // Default status
+            status: status || "Pending", // สถานะเริ่มต้นเป็น Pending
             shippingAddress,
         });
 
+        // บันทึกคำสั่งซื้อใหม่
         await newOrder.save();
         res.status(201).json({ message: "Order created successfully", order: newOrder });
     } catch (error) {
