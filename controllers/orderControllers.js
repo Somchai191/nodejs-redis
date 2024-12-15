@@ -3,7 +3,7 @@ const Order = require('../schemas/v1/order.schema');
 // GET all orders
 const getOrders = async (req, res) => {
     try {
-        const orders = await Order.find().populate('userId').populate('products.productId');
+        const orders = await Order.find().populate('userId').populate('items.productId');
         res.status(200).json(orders);
     } catch (error) {
         res.status(500).json({ message: "Failed to retrieve orders", error: error.message });
@@ -14,7 +14,7 @@ const getOrders = async (req, res) => {
 const getOrderById = async (req, res) => {
     const { id } = req.params;
     try {
-        const order = await Order.findById(id).populate('userId').populate('products.productId');
+        const order = await Order.findById(id).populate('userId').populate('items.productId');
         if (!order) {
             return res.status(404).json({ message: "Order not found" });
         }
@@ -28,7 +28,7 @@ const getOrderById = async (req, res) => {
 const getOrdersByUserId = async (req, res) => {
     const { userId } = req.params;
     try {
-        const orders = await Order.find({ userId }).populate('products.productId');
+        const orders = await Order.find({ userId }).populate('items.productId');
         if (!orders || orders.length === 0) {
             return res.status(404).json({ message: "No orders found for this user" });
         }
@@ -40,18 +40,19 @@ const getOrdersByUserId = async (req, res) => {
 
 // POST a new order
 const addOrder = async (req, res) => {
-    const { userId, products, totalPrice, status } = req.body;
+    const { userId, items, totalAmount, status, shippingAddress } = req.body;
 
-    if (!userId || !products || !totalPrice) {
-        return res.status(400).json({ message: "Required fields: userId, products, totalPrice" });
+    if (!userId || !items || !totalAmount || !shippingAddress) {
+        return res.status(400).json({ message: "Required fields: userId, items, totalAmount, shippingAddress" });
     }
 
     try {
         const newOrder = new Order({
             userId,
-            products,
-            totalPrice,
-            status: status || "pending", // Default status
+            items,
+            totalAmount,
+            status: status || "Pending", // Default status
+            shippingAddress,
         });
 
         await newOrder.save();
