@@ -17,7 +17,7 @@ router.get('/getorders', getOrders);
 router.get('/getorders/:id', getOrderById);
 
 // GET orders by user ID
-router.get('/user/:userId/orders', getOrdersByUserId);
+router.get('/getorders/user/:userId', getOrdersByUserId);
 
 // POST a new order
 router.post('/orders', addOrder);
