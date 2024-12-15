@@ -48,8 +48,8 @@ const getOrdersByUserId = async (req, res) => {
 
 
 // POST a new order
-const Product = require('../schemas/v1/product.schema');
-const User = require('../schemas/v1/user.schema'); // นำเข้าโมเดล User
+
+const Product = require('../schemas/v1/product.schema'); // นำเข้าโมเดล Product
 
 const addOrder = async (req, res) => {
     const { userId, items, status, shippingAddress } = req.body;
@@ -98,32 +98,71 @@ const addOrder = async (req, res) => {
         // บันทึกคำสั่งซื้อใหม่
         await newOrder.save();
 
-        // ดึงข้อมูลผู้ใช้ (name, email) หลังจากบันทึกคำสั่งซื้อเสร็จ
-        const orderWithUserDetails = await Order.findById(newOrder._id)
-            .populate('userId', 'user.name email')  // ดึงข้อมูล 'name' และ 'email' จาก User
-            .exec();
-
-        res.status(201).json({ message: "Order created successfully", order: orderWithUserDetails });
+        // ส่งคำตอบกลับไปโดยไม่ดึงข้อมูล userId หรือ populate
+        res.status(201).json({ message: "Order created successfully", order: newOrder });
     } catch (error) {
         res.status(500).json({ message: "Failed to create order", error: error.message });
     }
 };
 
+
 // UPDATE order by ID
+
+
 const updateOrder = async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
 
     try {
+        // ดึงคำสั่งซื้อที่ต้องการอัปเดต
+        const order = await Order.findById(id);
+        if (!order) {
+            return res.status(404).json({ message: "Order not found" });
+        }
+
+        // หากมีการอัปเดตในส่วนของ items (รายการสินค้า)
+        if (updates.items) {
+            const updatedItems = [];
+            let calculatedTotalAmount = 0;
+
+            // อัปเดตข้อมูลสินค้าในรายการ
+            for (let item of updates.items) {
+                const product = await Product.findById(item.productId);
+                if (product) {
+                    const itemTotalPrice = product.price * item.quantity;
+
+                    updatedItems.push({
+                        productId: item.productId,
+                        name: product.name,
+                        price: product.price,
+                        quantity: item.quantity,
+                        totalPrice: itemTotalPrice,
+                    });
+
+                    calculatedTotalAmount += itemTotalPrice;
+                } else {
+                    return res.status(404).json({ message: `Product with ID ${item.productId} not found` });
+                }
+            }
+
+            // อัปเดตข้อมูล items และ totalAmount
+            updates.items = updatedItems;
+            updates.totalAmount = calculatedTotalAmount;
+        }
+
+        // อัปเดตคำสั่งซื้อด้วยข้อมูลที่ได้รับจาก req.body
         const updatedOrder = await Order.findByIdAndUpdate(id, updates, { new: true });
+
         if (!updatedOrder) {
             return res.status(404).json({ message: "Order not found" });
         }
+
         res.status(200).json({ message: "Order updated successfully", order: updatedOrder });
     } catch (error) {
         res.status(500).json({ message: "Failed to update order", error: error.message });
     }
 };
+
 
 // DELETE order by ID
 const deleteOrder = async (req, res) => {
