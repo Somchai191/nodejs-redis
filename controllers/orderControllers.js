@@ -52,19 +52,27 @@ const addOrder = async (req, res) => {
     try {
         // ดึงข้อมูลสินค้า (name และ price) สำหรับแต่ละ productId ที่ส่งมา
         const updatedItems = [];
+        let calculatedTotalAmount = 0; // ตัวแปรสำหรับคำนวณ totalAmount
 
         for (let item of items) {
             // ดึงข้อมูลจากฐานข้อมูล 'Product' โดยใช้ 'productId'
             const product = await Product.findById(item.productId);
 
             if (product) {
-                // เพิ่มชื่อสินค้า (name) และราคา (price) ลงในแต่ละรายการ
+                // คำนวณราคา: ราคา * จำนวนสินค้า
+                const itemTotalPrice = product.price * item.quantity;
+
+                // เพิ่มข้อมูลชื่อสินค้า, ราคา, และราคาทั้งหมดของรายการสินค้า
                 updatedItems.push({
                     productId: item.productId,
                     name: product.name,       // ชื่อสินค้าที่ดึงมาจากฐานข้อมูล
                     price: product.price,     // ราคาสินค้าที่ดึงมาจากฐานข้อมูล
                     quantity: item.quantity,  // จำนวนสินค้าที่รับมา
+                    totalPrice: itemTotalPrice, // ราคาทั้งหมดของรายการ (ราคา * จำนวน)
                 });
+
+                // คำนวณ totalAmount รวมทั้งหมด
+                calculatedTotalAmount += itemTotalPrice;
             } else {
                 // ถ้าไม่พบสินค้าในฐานข้อมูล
                 return res.status(404).json({ message: `Product with ID ${item.productId} not found` });
@@ -74,8 +82,8 @@ const addOrder = async (req, res) => {
         // สร้างคำสั่งซื้อใหม่โดยใช้ข้อมูลที่ได้รับ
         const newOrder = new Order({
             userId,
-            items: updatedItems,  // ใช้ข้อมูล items ที่มีชื่อและราคาที่เพิ่มมา
-            totalAmount,
+            items: updatedItems,  // ใช้ข้อมูล items ที่มีชื่อ, ราคา และราคาทั้งหมดที่เพิ่มมา
+            totalAmount: calculatedTotalAmount, // คำนวณ totalAmount ใหม่
             status: status || "Pending", // สถานะเริ่มต้นเป็น Pending
             shippingAddress,
         });
@@ -87,6 +95,7 @@ const addOrder = async (req, res) => {
         res.status(500).json({ message: "Failed to create order", error: error.message });
     }
 };
+
 
 // UPDATE order by ID
 const updateOrder = async (req, res) => {
