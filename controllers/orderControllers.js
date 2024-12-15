@@ -39,7 +39,8 @@ const getOrdersByUserId = async (req, res) => {
 };
 
 // POST a new order
-const Product = require('../schemas/v1/product.schema'); // ต้อง import โมเดล Product
+const Product = require('../schemas/v1/product.schema');
+const User = require('../schemas/v1/user.schema'); // นำเข้าโมเดล User
 
 const addOrder = async (req, res) => {
     const { userId, items, status, shippingAddress } = req.body;
@@ -52,7 +53,7 @@ const addOrder = async (req, res) => {
     try {
         // ดึงข้อมูลสินค้า (name และ price) สำหรับแต่ละ productId ที่ส่งมา
         const updatedItems = [];
-        let calculatedTotalAmount = 0; // ตัวแปรสำหรับคำนวณ totalAmount
+        let calculatedTotalAmount = 0;
 
         for (let item of items) {
             // ดึงข้อมูลจากฐานข้อมูล 'Product' โดยใช้ 'productId'
@@ -62,35 +63,38 @@ const addOrder = async (req, res) => {
                 // คำนวณราคา: ราคา * จำนวนสินค้า
                 const itemTotalPrice = product.price * item.quantity;
 
-                // เพิ่มข้อมูลชื่อสินค้า, ราคา, และราคาทั้งหมดของรายการสินค้า
                 updatedItems.push({
                     productId: item.productId,
-                    name: product.name,       // ชื่อสินค้าที่ดึงมาจากฐานข้อมูล
-                    price: product.price,     // ราคาสินค้าที่ดึงมาจากฐานข้อมูล
-                    quantity: item.quantity,  // จำนวนสินค้าที่รับมา
-                    totalPrice: itemTotalPrice, // ราคาทั้งหมดของรายการ (ราคา * จำนวน)
+                    name: product.name,       
+                    price: product.price,     
+                    quantity: item.quantity,  
+                    totalPrice: itemTotalPrice, 
                 });
 
-                // คำนวณ totalAmount รวมทั้งหมด
                 calculatedTotalAmount += itemTotalPrice;
             } else {
-                // ถ้าไม่พบสินค้าในฐานข้อมูล
                 return res.status(404).json({ message: `Product with ID ${item.productId} not found` });
             }
         }
 
-        // สร้างคำสั่งซื้อใหม่โดยใช้ข้อมูลที่ได้รับ
+        // สร้างคำสั่งซื้อใหม่
         const newOrder = new Order({
             userId,
-            items: updatedItems,  // ใช้ข้อมูล items ที่มีชื่อ, ราคา และราคาทั้งหมดที่เพิ่มมา
-            totalAmount: calculatedTotalAmount, // คำนวณ totalAmount ใหม่
-            status: status || "Pending", // สถานะเริ่มต้นเป็น Pending
+            items: updatedItems,
+            totalAmount: calculatedTotalAmount,
+            status: status || "Pending",
             shippingAddress,
         });
 
         // บันทึกคำสั่งซื้อใหม่
         await newOrder.save();
-        res.status(201).json({ message: "Order created successfully", order: newOrder });
+
+        // ดึงข้อมูลผู้ใช้ (name, email) หลังจากบันทึกคำสั่งซื้อเสร็จ
+        const orderWithUserDetails = await Order.findById(newOrder._id)
+            .populate('userId', 'name email')  // ดึงข้อมูล 'name' และ 'email' จาก User
+            .exec();
+
+        res.status(201).json({ message: "Order created successfully", order: orderWithUserDetails });
     } catch (error) {
         res.status(500).json({ message: "Failed to create order", error: error.message });
     }
