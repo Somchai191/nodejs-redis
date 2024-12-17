@@ -32,7 +32,7 @@ const changePassword = async (req, res) => {
 
   await user
     .findOneAndUpdate(
-      { "user.id": userId },
+      { "user.email": userId },
       { "user.password": hashedPassword },
       { useFindAndModify: false, new: true }
     )
