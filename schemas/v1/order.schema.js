@@ -1,5 +1,3 @@
-const mongoose = require('mongoose');
-
 const orderSchema = new mongoose.Schema({
     userId: { 
         type: mongoose.Schema.Types.ObjectId, 
@@ -57,6 +55,6 @@ const orderSchema = new mongoose.Schema({
         postalCode: { type: String, required: true, description: "รหัสไปรษณีย์" },
         country: { type: String, required: true, description: "ประเทศสำหรับจัดส่ง" }
     }
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model('Order', orderSchema);
