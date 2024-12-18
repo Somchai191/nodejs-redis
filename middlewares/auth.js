@@ -153,4 +153,28 @@ const verifyAPIKey = (req, res, next) => {
   next();
 };
 
-module.exports = { verifyAccessToken, verifyRefreshToken, verifyAPIKey };
+
+const authMiddleware = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).send({
+      status: "error",
+      message: "Authentication token is required!",
+    });
+  }
+
+  const token = authHeader.split(" ")[1];
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_ACCESS_TOKEN_SECRET);
+    req.user = decoded; // เพิ่มข้อมูลผู้ใช้ใน req.user
+    next();
+  } catch (err) {
+    return res.status(401).send({
+      status: "error",
+      message: "Invalid or expired token",
+    });
+  }
+};
+
+
+module.exports = { verifyAccessToken, verifyRefreshToken, verifyAPIKey,authMiddleware };
