@@ -150,6 +150,9 @@ const updateOrder = async (req, res) => {
             updates.totalAmount = calculatedTotalAmount;
         }
 
+        // เพิ่มฟิลด์ updatedAt ด้วยวันที่ปัจจุบัน
+        updates.updatedAt = new Date();
+
         // อัปเดตคำสั่งซื้อด้วยข้อมูลที่ได้รับจาก req.body
         const updatedOrder = await Order.findByIdAndUpdate(id, updates, { new: true });
 
@@ -162,6 +165,7 @@ const updateOrder = async (req, res) => {
         res.status(500).json({ message: "Failed to update order", error: error.message });
     }
 };
+
 
 
 // DELETE order by ID
