@@ -295,64 +295,80 @@ const login = async (req, res, next) => {
 };
 
 const logout = async (req, res, next) => {
-  console.log("logout function");
-
-  if (!req.headers["device-fingerprint"]) {
-    return res
-      .status(401)
-      .send({ status: "error", message: "Device fingerprint is required!" });
-  }
-
-  const deviceFingerprint = req.headers["device-fingerprint"];
-  const businessId = req.headers["businessid"];
-
-  if (!businessId) {
-    return res
-      .status(400)
-      .send({ status: "error", message: "Business ID is required!" });
-  }
-
-  const userId = req.user.userId; // assuming req.user contains authenticated user data
-
   try {
-    // Find user by userId
-    const foundUser = await User.findById(userId);
+    console.log("logout function");
 
+    const deviceFingerprint = req.headers["device-fingerprint"];
+    const businessId = req.headers["businessid"];
+
+    if (!deviceFingerprint) {
+      return res
+        .status(401)
+        .send({ status: "error", message: "Device fingerprint is required!" });
+    }
+
+    if (!businessId) {
+      return res
+        .status(400)
+        .send({ status: "error", message: "Business ID is required!" });
+    }
+
+    const userId = req.user?.userId; // ตรวจสอบว่ามี userId หรือไม่
+    if (!userId) {
+      return res
+        .status(401)
+        .send({ status: "error", message: "User authentication required!" });
+    }
+
+    // คำสั่งหลัก
+    const foundUser = await User.findById(userId);
     if (!foundUser) {
       return res
         .status(404)
         .send({ status: "error", message: "User not found" });
     }
 
-    // Remove device from loggedInDevices
-    const updatedDevices = foundUser.loggedInDevices.filter(
+    const updatedDevices = foundUser.loggedInDevices?.filter(
       (device) => device.deviceFingerprint !== deviceFingerprint
-    );
+    ) || [];
 
-    // Update user with filtered devices
     await User.updateOne(
       { _id: foundUser._id },
       { $set: { loggedInDevices: updatedDevices } }
     );
 
-    // Remove related data from Redis
+    // จัดการ Redis แบบมี Timeout
     const pipeline = redis.pipeline();
-      pipeline.sRem(`Device_Fingerprint_${userId}`, deviceFingerprint);
-      pipeline.del(`Last_Login_${userId}_${deviceFingerprint}`);
-      pipeline.del(`Last_Refresh_Token_OTP_${userId}_${deviceFingerprint}`);
-      pipeline.del(`Last_Refresh_Token_${userId}_${deviceFingerprint}`);
-      pipeline.del(`Last_Access_Token_${userId}_${deviceFingerprint}`);
-      await pipeline.exec();
+    pipeline.sRem(`Device_Fingerprint_${userId}`, deviceFingerprint);
+    pipeline.del(`Last_Login_${userId}_${deviceFingerprint}`);
+    pipeline.del(`Last_Refresh_Token_OTP_${userId}_${deviceFingerprint}`);
+    pipeline.del(`Last_Refresh_Token_${userId}_${deviceFingerprint}`);
+    pipeline.del(`Last_Access_Token_${userId}_${deviceFingerprint}`);
 
+    try {
+      await Promise.race([
+        pipeline.exec(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Redis Timeout")), 5000))
+      ]);
+    } catch (redisError) {
+      console.error("Redis Error:", redisError.message);
+      return res.status(500).send({
+        status: "error",
+        message: "Error removing device data in Redis",
+      });
+    }
 
     res.status(200).send({
       status: "success",
       message: "Successfully Logged Out",
     });
+
   } catch (err) {
-    next(err);
+    console.error("Unexpected Error:", err.message);
+    next(err); // ส่ง Error ให้ Middleware จัดการ
   }
 };
+
 
 const refresh = async (req, res, next) => {
   //console.log('req.user', req.user);
