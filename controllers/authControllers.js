@@ -336,11 +336,14 @@ const logout = async (req, res, next) => {
     );
 
     // Remove related data from Redis
-    await redis.sRem(`Device_Fingerprint_${userId}`, deviceFingerprint);
-    await redis.del(`Last_Login_${userId}_${deviceFingerprint}`);
-    await redis.del(`Last_Refresh_Token_OTP_${userId}_${deviceFingerprint}`);
-    await redis.del(`Last_Refresh_Token_${userId}_${deviceFingerprint}`);
-    await redis.del(`Last_Access_Token_${userId}_${deviceFingerprint}`);
+    const pipeline = redis.pipeline();
+      pipeline.sRem(`Device_Fingerprint_${userId}`, deviceFingerprint);
+      pipeline.del(`Last_Login_${userId}_${deviceFingerprint}`);
+      pipeline.del(`Last_Refresh_Token_OTP_${userId}_${deviceFingerprint}`);
+      pipeline.del(`Last_Refresh_Token_${userId}_${deviceFingerprint}`);
+      pipeline.del(`Last_Access_Token_${userId}_${deviceFingerprint}`);
+      await pipeline.exec();
+
 
     res.status(200).send({
       status: "success",
