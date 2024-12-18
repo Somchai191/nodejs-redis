@@ -275,6 +275,7 @@ const login = async (req, res, next) => {
                 email: foundUser.user.verified.email,
                 phone: foundUser.user.verified.phone,
               },
+              role: foundUser.user.role,
             },
             imageURL: foundUser.user.imageURL,
             tokens: {
