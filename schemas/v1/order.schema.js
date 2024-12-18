@@ -56,8 +56,18 @@ const orderSchema = new mongoose.Schema({
         state: { type: String, required: true, description: "รัฐหรือจังหวัดสำหรับจัดส่ง" },
         postalCode: { type: String, required: true, description: "รหัสไปรษณีย์" },
         country: { type: String, required: true, description: "ประเทศสำหรับจัดส่ง" }
+    },
+    updatedAt: {
+        type: Date,
+        default: Date.now,
+        description: "วันที่และเวลาที่คำสั่งซื้อถูกอัปเดต"
     }
-}, { timestamps: true });
+});
+
+// Middleware เพื่ออัปเดต `updatedAt` เมื่อมีการอัปเดตคำสั่งซื้อ
+orderSchema.pre('findOneAndUpdate', function(next) {
+    this.set({ updatedAt: Date.now() }); // อัปเดตฟิลด์ `updatedAt`
+    next();
+});
 
 module.exports = mongoose.model('Order', orderSchema);
-
