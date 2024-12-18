@@ -21,7 +21,6 @@ const {
 const {
   verifyAccessToken,
   verifyRefreshToken,
-  authMiddleware
 } = require("../../middlewares/auth");
 
 //? Register
@@ -31,7 +30,7 @@ router.post("/register", registerRateLimiter, register);
 router.post("/login", loginRateLimiter, login);
 
 //? Logout
-router.post("/logout", loginRateLimiter,authMiddleware, logout);
+router.post("/logout", loginRateLimiter, logout);
 
 router.post("/refresh", verifyRefreshToken, refresh);
 

@@ -295,75 +295,61 @@ const login = async (req, res, next) => {
 };
 
 const logout = async (req, res, next) => {
-  console.log("Logout function");
+  console.log("logout function");
+
+  if (!req.headers["device-fingerprint"]) {
+    return res
+      .status(401)
+      .send({ status: "error", message: "Device fingerprint is required!" });
+  }
+
+  const deviceFingerprint = req.headers["device-fingerprint"];
+  const businessId = req.headers["businessid"];
+
+  if (!businessId) {
+    return res
+      .status(400)
+      .send({ status: "error", message: "Business ID is required!" });
+  }
+
+  const userId = req.user.userId; // assuming req.user contains authenticated user data
 
   try {
-    // ตรวจสอบว่า Header มีค่า device-fingerprint หรือไม่
-    if (!req.headers["device-fingerprint"]) {
-      return res.status(401).send({
-        status: "error",
-        message: "Device fingerprint is required!",
-      });
-    }
-
-    // อ่านค่า Header ที่เกี่ยวข้อง
-    const deviceFingerprint = req.headers["device-fingerprint"];
-    const userId = req.user?.userId; // ต้องตรวจสอบว่ามี req.user และ userId หรือไม่ (สมมติว่ามาจาก middleware auth)
-
-    if (!userId) {
-      return res.status(401).send({
-        status: "error",
-        message: "User authentication required!",
-      });
-    }
-
-    // ค้นหาผู้ใช้ในฐานข้อมูล
+    // Find user by userId
     const foundUser = await User.findById(userId);
 
     if (!foundUser) {
-      return res.status(404).send({
-        status: "error",
-        message: "User not found",
-      });
+      return res
+        .status(404)
+        .send({ status: "error", message: "User not found" });
     }
 
-    // ตรวจสอบว่าอุปกรณ์ที่ล็อกอินอยู่มี deviceFingerprint นี้หรือไม่
-    const loggedInDevices = foundUser.loggedInDevices || [];
-    const updatedDevices = loggedInDevices.filter(
+    // Remove device from loggedInDevices
+    const updatedDevices = foundUser.loggedInDevices.filter(
       (device) => device.deviceFingerprint !== deviceFingerprint
     );
 
-    if (loggedInDevices.length === updatedDevices.length) {
-      return res.status(400).send({
-        status: "error",
-        message: "Device not found or already logged out",
-      });
-    }
-
-    // อัปเดตฐานข้อมูลผู้ใช้ (ลบอุปกรณ์ที่ออกจากระบบ)
+    // Update user with filtered devices
     await User.updateOne(
       { _id: foundUser._id },
       { $set: { loggedInDevices: updatedDevices } }
     );
 
-    // ลบข้อมูลใน Redis
+    // Remove related data from Redis
     await redis.sRem(`Device_Fingerprint_${userId}`, deviceFingerprint);
     await redis.del(`Last_Login_${userId}_${deviceFingerprint}`);
     await redis.del(`Last_Refresh_Token_OTP_${userId}_${deviceFingerprint}`);
     await redis.del(`Last_Refresh_Token_${userId}_${deviceFingerprint}`);
     await redis.del(`Last_Access_Token_${userId}_${deviceFingerprint}`);
 
-    // ส่งข้อความตอบกลับสำเร็จ
     res.status(200).send({
       status: "success",
-      message: "Successfully logged out",
+      message: "Successfully Logged Out",
     });
-  } catch (error) {
-    console.error("Logout error:", error);
-    next(error); // ส่ง error ไปยัง middleware จัดการข้อผิดพลาด
+  } catch (err) {
+    next(err);
   }
 };
-
 
 const refresh = async (req, res, next) => {
   //console.log('req.user', req.user);
