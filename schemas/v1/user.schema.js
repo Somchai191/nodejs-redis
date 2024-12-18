@@ -20,6 +20,11 @@ const UserSchema = new mongoose.Schema(
         email: { type: Boolean, default: false },
         phone: { type: Boolean, default: false },
       },
+      role: { 
+        type: String, 
+        enum: ["superadmin", "admin", "user"],  // กำหนด role ได้ที่นี่
+        default: "user"  // ตั้งค่า default เป็น "user"
+      },
     },
     lang: { type: String, default: "TH" },
     deviceFingerPrint: [
