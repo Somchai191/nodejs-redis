@@ -60,6 +60,10 @@ const verifyAccessToken = async (req, res, next) => {
       } else {
         req.user = decoded;  // ตั้งค่า req.user จาก decoded token
 
+        if (!req.user.userId) {
+          return res.status(401).send({ status: "error", message: "Invalid token: User ID not found." });
+        }
+
         // ตรวจสอบ MacAddress และ Hardware ID
         let MacAddressIsMember = await redis.sIsMember(
           `Mac_Address_${decoded.userId}`,
@@ -104,7 +108,7 @@ const verifyAccessToken = async (req, res, next) => {
       });
     }
   }
-};
+}
 
 
 const verifyRefreshToken = (req, res, next) => {

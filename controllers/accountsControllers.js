@@ -627,7 +627,7 @@ const getOneAccount = async (req, res) => {
 
 const getAllAccounts = async (req, res) => {
   try {
-    // ตรวจสอบว่า req.user มี userId หรือไม่
+    console.log("req.user:", req.user);  // ตรวจสอบค่า req.user
     if (!req.user || !req.user.userId) {
       return res.status(404).json({
         status: "error",
@@ -670,7 +670,6 @@ const getAllAccounts = async (req, res) => {
     return res.status(500).json({ status: "error", message: error.message });
   }
 };
-
 
 const deleteOneAccount = async (req, res) => {
   if (!req.body) {
