@@ -590,15 +590,17 @@ const verifyRefreshTokenOTP = async (req, res) => {
 
 const getOneAccount = async (req, res) => {
   const userId = req.params.user;
-  console.log("User ID from params:", userId); // ตรวจสอบว่าได้รับค่าหรือไม่
 
   try {
     let findUser = await user.findOne({
       $or: [{ userId: userId }, { "user.email": userId }],
     });
-    console.log("Found User:", findUser); // ตรวจสอบว่าพบผู้ใช้หรือไม่
 
     if (findUser) {
+      //const accessToken = req.headers["authorization"].replace("Bearer ", "");
+
+      //await redis.sAdd(`Used_Access_Token_${req.user.userId}`, accessToken);
+
       const newAccessToken = jwt.sign(
         { userId: req.user.userId, name: req.user.name, email: req.user.email },
         process.env.JWT_ACCESS_TOKEN_SECRET,
@@ -606,13 +608,15 @@ const getOneAccount = async (req, res) => {
       );
       redis.set(`Last_Access_Token_${req.user.userId}_${req.headers["hardware-id"]}`, newAccessToken);
 
-      await res.status(200).send({
-        authenticated_user: req.user,
-        status: "success",
-        message: `User ID ${userId} was found.`,
-        data: findUser,
-        token: newAccessToken,
-      });
+      await res
+        .status(200)
+        .send({
+          authenticated_user: req.user,
+          status: "success",
+          message: `User ID ${userId} was found.`,
+          data: findUser,
+          token: newAccessToken,
+        });
     } else {
       await res.status(404).send({ status: "error", message: `User ID ${userId} was not found.` });
     }
