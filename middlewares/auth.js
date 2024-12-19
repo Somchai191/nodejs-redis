@@ -33,7 +33,6 @@ const verifyAccessToken = async (req, res, next) => {
       /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})|([0-9a-fA-F]{4}.[0-9a-fA-F]{4}.[0-9a-fA-F]{4})$/
     );
 
-    // ตรวจสอบว่ามี mac-address และ hardware-id หรือไม่
     if (!req.headers["mac-address"]) {
       return res.status(401).send({ status: "error", message: "MAC address is required!" });
     }
@@ -58,17 +57,18 @@ const verifyAccessToken = async (req, res, next) => {
     // ตรวจสอบและถอดรหัส JWT
     jwt.verify(accessToken, JWT_ACCESS_TOKEN_SECRET, async (err, decoded) => {
       if (err) {
+        console.error("JWT verification failed:", err); // เพิ่มการแสดง error
         return accessTokenCatchError(err, res);
       } else {
-        // ตรวจสอบว่า userId ถูกต้องใน decoded JWT
+        console.log("Decoded JWT:", decoded); // แสดง decoded JWT เพื่อดูว่า userId อยู่ในนั้นไหม
+
+        // ตรวจสอบว่า userId อยู่ใน decoded หรือไม่
         if (!decoded || !decoded.userId) {
           return res.status(401).send({
             status: "error",
             message: "User ID was not found in the token.",
           });
         }
-
-        console.log("Decoded JWT:", decoded);
 
         // ตรวจสอบข้อมูลใน Redis
         let MacAddressIsMember = await redis.sIsMember(
