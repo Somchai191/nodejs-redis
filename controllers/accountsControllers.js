@@ -635,19 +635,19 @@ const getAllAccounts = async (req, res) => {
       });
     }
 
-    const userIdFromParams = req.params.userId; // ดึง userId จาก URL params
+    const userIdFromParams = req.params.user; // ดึง userId จาก URL params
     console.log("User ID from params:", userIdFromParams); // ตรวจสอบว่าได้รับค่าหรือไม่
 
     // ดึงข้อมูลจากฐานข้อมูลโดยใช้ userId ที่ได้รับ
-    let user = await User.findById(userIdFromParams); // ใช้ findById ถ้าหาก `userId` เป็น MongoDB ObjectID
-    if (!user) {
+    let userData = await user.findById(userIdFromParams); // ใช้ findById ถ้าหาก `userId` เป็น MongoDB ObjectID
+    if (!userData) {
       return res.status(404).json({
         status: "error",
         message: "User not found.",
       });
     }
 
-    let allUsersCount = await User.countDocuments();
+    let allUsersCount = await user.countDocuments();
 
     const newAccessToken = jwt.sign(
       { userId: req.user.userId, name: req.user.name, email: req.user.email },
@@ -663,7 +663,7 @@ const getAllAccounts = async (req, res) => {
     return res.status(200).json({
       authenticated_user: req.user,
       status: "success",
-      data: { count: allUsersCount, user: user }, // ส่งข้อมูลผู้ใช้ที่ค้นหาได้
+      data: { count: allUsersCount, user: userData }, // ส่งข้อมูลผู้ใช้ที่ค้นหาได้
       token: newAccessToken,
     });
   } catch (error) {
