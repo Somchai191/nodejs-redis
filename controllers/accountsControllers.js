@@ -625,30 +625,42 @@ const getOneAccount = async (req, res) => {
   }
 };
 
-const getAllAccounts = async (req, res, next) => {
-  let allUsers = await user.find();
-  let allUsersCount = await user.count();
+const getAllAccounts = async (req, res) => {
+  try {
+    // ตรวจสอบว่า req.user มี userId หรือไม่
+    if (!req.user || !req.user.userId) {
+      return res.status(404).json({
+        status: "error",
+        message: "User ID was not found.",
+      });
+    }
 
-  const accessToken = req.headers["authorization"].replace("Bearer ", "");
+    // ดึงข้อมูลจากฐานข้อมูล
+    let allUsers = await user.find(); // ใช้ query ตามต้องการ
+    let allUsersCount = await user.countDocuments();
 
-  await redis.sAdd(`Used_Access_Token_${req.user.userId}`, accessToken);
+    const newAccessToken = jwt.sign(
+      { userId: req.user.userId, name: req.user.name, email: req.user.email },
+      process.env.JWT_ACCESS_TOKEN_SECRET,
+      { expiresIn: process.env.ACCESS_TOKEN_EXPIRES }
+    );
 
-  const newAccessToken = jwt.sign(
-    { userId: req.user.userId, name: req.user.name, email: req.user.email },
-    process.env.JWT_ACCESS_TOKEN_SECRET,
-    { expiresIn: process.env.ACCESS_TOKEN_EXPIRES }
-  );
-  redis.set(`Last_Access_Token_${req.user.userId}_${req.headers["hardware-id"]}`, newAccessToken);
+    await redis.set(
+      `Last_Access_Token_${req.user.userId}_${req.headers["hardware-id"]}`,
+      newAccessToken
+    );
 
-  await res
-    .status(200)
-    .json({
+    return res.status(200).json({
       authenticated_user: req.user,
       status: "success",
       data: { count: allUsersCount, users: allUsers },
       token: newAccessToken,
     });
+  } catch (error) {
+    return res.status(500).json({ status: "error", message: error.message });
+  }
 };
+
 
 const deleteOneAccount = async (req, res) => {
   if (!req.body) {
