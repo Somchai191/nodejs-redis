@@ -628,7 +628,9 @@ const getOneAccount = async (req, res) => {
 const getAllAccounts = async (req, res) => {
   try {
     // ตรวจสอบว่า req.user มี userId หรือไม่
-    if (!req.user || !req.user.userId) {
+    const userId = req.user?.userId || req.params.userId || req.query.userId;  // ลองหาจาก req.user, req.params หรือ req.query
+
+    if (!userId) {
       return res.status(404).json({
         status: "error",
         message: "User ID was not found.",
@@ -640,13 +642,14 @@ const getAllAccounts = async (req, res) => {
     let allUsersCount = await user.countDocuments();
 
     const newAccessToken = jwt.sign(
-      { userId: req.user.userId, name: req.user.name, email: req.user.email },
+      { userId: userId, name: req.user?.name, email: req.user?.email },
       process.env.JWT_ACCESS_TOKEN_SECRET,
       { expiresIn: process.env.ACCESS_TOKEN_EXPIRES }
     );
 
+    // อัพเดต Access Token ใน Redis
     await redis.set(
-      `Last_Access_Token_${req.user.userId}_${req.headers["hardware-id"]}`,
+      `Last_Access_Token_${userId}_${req.headers["hardware-id"]}`,
       newAccessToken
     );
 
@@ -660,6 +663,7 @@ const getAllAccounts = async (req, res) => {
     return res.status(500).json({ status: "error", message: error.message });
   }
 };
+
 
 
 const deleteOneAccount = async (req, res) => {
