@@ -639,7 +639,7 @@ const getAllAccounts = async (req, res) => {
     console.log("User ID from params:", userIdFromParams); // ตรวจสอบว่าได้รับค่าหรือไม่
 
     // ดึงข้อมูลจากฐานข้อมูลโดยใช้ userId ที่ได้รับ
-    let user = await user.findById(userIdFromParams); // ใช้ findById ถ้าหาก `userId` เป็น MongoDB ObjectID
+    let user = await User.findById(userIdFromParams); // ใช้ findById ถ้าหาก `userId` เป็น MongoDB ObjectID
     if (!user) {
       return res.status(404).json({
         status: "error",
@@ -647,7 +647,7 @@ const getAllAccounts = async (req, res) => {
       });
     }
 
-    let allUsersCount = await user.countDocuments();
+    let allUsersCount = await User.countDocuments();
 
     const newAccessToken = jwt.sign(
       { userId: req.user.userId, name: req.user.name, email: req.user.email },
