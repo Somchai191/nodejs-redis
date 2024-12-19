@@ -54,23 +54,13 @@ const verifyAccessToken = async (req, res, next) => {
 
     const accessToken = req.headers["authorization"].replace("Bearer ", "");
 
-    // ตรวจสอบและถอดรหัส JWT
     jwt.verify(accessToken, JWT_ACCESS_TOKEN_SECRET, async (err, decoded) => {
       if (err) {
-        console.error("JWT verification failed:", err); // เพิ่มการแสดง error
         return accessTokenCatchError(err, res);
       } else {
-        console.log("Decoded JWT:", decoded); // แสดง decoded JWT เพื่อดูว่า userId อยู่ในนั้นไหม
+        req.user = decoded;  // ตั้งค่า req.user จาก decoded token
 
-        // ตรวจสอบว่า userId อยู่ใน decoded หรือไม่
-        if (!decoded || !decoded.userId) {
-          return res.status(401).send({
-            status: "error",
-            message: "User ID was not found in the token.",
-          });
-        }
-
-        // ตรวจสอบข้อมูลใน Redis
+        // ตรวจสอบ MacAddress และ Hardware ID
         let MacAddressIsMember = await redis.sIsMember(
           `Mac_Address_${decoded.userId}`,
           req.headers["mac-address"]
@@ -86,13 +76,9 @@ const verifyAccessToken = async (req, res, next) => {
             message: "Both Mac Address AND Hardware ID does not exist!",
           });
         } else if (!MacAddressIsMember) {
-          return res
-            .status(401)
-            .send({ status: "error", message: "Mac Address does not exist!" });
+          return res.status(401).send({ status: "error", message: "Mac Address does not exist!" });
         } else if (!hardwareIdIsMember) {
-          return res
-            .status(401)
-            .send({ status: "error", message: "Hardware ID does not exist!" });
+          return res.status(401).send({ status: "error", message: "Hardware ID does not exist!" });
         }
 
         const lastAccessToken = await redis.get(
@@ -101,17 +87,17 @@ const verifyAccessToken = async (req, res, next) => {
         if (lastAccessToken !== accessToken) {
           return res.status(401).send({ status: "error", message: `Incorrect Access Token!` });
         }
-
-        // เพิ่มข้อมูล userId ที่ถูกต้องเข้าใน req.user
-        req.user = decoded;  // ส่ง decoded JWT ไปยัง req.user
-        return next();
       }
+      return next();  // ส่งต่อไปยังฟังก์ชันถัดไป
     });
   } else {
     const superAdminApiKey = req.headers["x-super-admin-api-key"];
     if (superAdminApiKey === process.env.SUPER_ADMIN_API_KEY) {
       console.log("You are in super admin mode.");
-      return next();
+      
+      // ตั้งค่า req.user สำหรับ superadmin เพื่อให้สามารถใช้ข้อมูลนี้ใน getAllAccounts
+      req.user = { userId: "superadmin-id", role: "superadmin" };  // สามารถตั้งค่าข้อมูลสมมติที่ต้องการได้
+      return next();  // ส่งต่อไปยังฟังก์ชันถัดไป
     } else {
       return res.status(403).json({
         message: "Unauthorized: Invalid API key for super admin",
