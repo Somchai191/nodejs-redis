@@ -44,7 +44,7 @@ router.get("/:user", [getAccountRateLimiter, verifyAccessToken], getOneAccount);
 
 router.get("/getuser/:user", [getAccountsRateLimiter, verifyAccessToken], getAllAccounts);
 
-router.delete("/:user", [deleteAccountRateLimiter, verifyAccessToken], deleteOneAccount);
+router.delete("/delte/:user", [deleteAccountRateLimiter, verifyAccessToken], deleteOneAccount);
 
 router.delete("/", [deleteAccountsRateLimiter, verifyAccessToken], deleteAllAccounts);
 
