@@ -33,6 +33,7 @@ const verifyAccessToken = async (req, res, next) => {
       /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})|([0-9a-fA-F]{4}.[0-9a-fA-F]{4}.[0-9a-fA-F]{4})$/
     );
 
+    // ตรวจสอบว่ามี mac-address และ hardware-id หรือไม่
     if (!req.headers["mac-address"]) {
       return res.status(401).send({ status: "error", message: "MAC address is required!" });
     }
@@ -51,12 +52,25 @@ const verifyAccessToken = async (req, res, next) => {
         message: "TOKEN is required for authentication",
       });
     }
+
     const accessToken = req.headers["authorization"].replace("Bearer ", "");
 
+    // ตรวจสอบและถอดรหัส JWT
     jwt.verify(accessToken, JWT_ACCESS_TOKEN_SECRET, async (err, decoded) => {
       if (err) {
         return accessTokenCatchError(err, res);
       } else {
+        // ตรวจสอบว่า userId ถูกต้องใน decoded JWT
+        if (!decoded || !decoded.userId) {
+          return res.status(401).send({
+            status: "error",
+            message: "User ID was not found in the token.",
+          });
+        }
+
+        console.log("Decoded JWT:", decoded);
+
+        // ตรวจสอบข้อมูลใน Redis
         let MacAddressIsMember = await redis.sIsMember(
           `Mac_Address_${decoded.userId}`,
           req.headers["mac-address"]
@@ -80,15 +94,18 @@ const verifyAccessToken = async (req, res, next) => {
             .status(401)
             .send({ status: "error", message: "Hardware ID does not exist!" });
         }
+
         const lastAccessToken = await redis.get(
           `Last_Access_Token_${decoded.userId}_${req.headers["hardware-id"]}`
         );
         if (lastAccessToken !== accessToken) {
           return res.status(401).send({ status: "error", message: `Incorrect Access Token!` });
         }
+
+        // เพิ่มข้อมูล userId ที่ถูกต้องเข้าใน req.user
+        req.user = decoded;  // ส่ง decoded JWT ไปยัง req.user
+        return next();
       }
-      req.user = decoded;
-      return next();
     });
   } else {
     const superAdminApiKey = req.headers["x-super-admin-api-key"];
