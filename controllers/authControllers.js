@@ -313,30 +313,41 @@ const logout = async (req, res, next) => {
       .send({ status: "error", message: "Business ID is required!" });
   }
 
-  const userId = req.user.userId; // assuming req.user contains authenticated user data
+  const userId = req.user.userId;
 
   try {
-    // Find user by userId
+    // ตรวจสอบการเชื่อมต่อ Redis
+    redis.ping((err, result) => {
+      if (err) {
+        console.error("Redis connection error", err);
+        return res.status(500).send({ status: "error", message: "Redis connection failed." });
+      }
+      console.log("Redis connected:", result);
+    });
+
+    // ค้นหาผู้ใช้จากฐานข้อมูล
     const foundUser = await User.findById(userId);
 
     if (!foundUser) {
-      return res
-        .status(404)
-        .send({ status: "error", message: "User not found" });
+      return res.status(404).send({ status: "error", message: "User not found" });
     }
 
-    // Remove device from loggedInDevices
+    // กรองอุปกรณ์ที่ไม่ตรงกับ deviceFingerprint
     const updatedDevices = foundUser.loggedInDevices.filter(
       (device) => device.deviceFingerprint !== deviceFingerprint
     );
 
-    // Update user with filtered devices
+    if (updatedDevices.length === foundUser.loggedInDevices.length) {
+      return res.status(400).send({ status: "error", message: "Device not found in logged-in devices" });
+    }
+
+    // อัปเดตข้อมูลผู้ใช้
     await User.updateOne(
       { _id: foundUser._id },
       { $set: { loggedInDevices: updatedDevices } }
     );
 
-    // Remove related data from Redis
+    // ลบข้อมูลจาก Redis
     await redis.sRem(`Device_Fingerprint_${userId}`, deviceFingerprint);
     await redis.del(`Last_Login_${userId}_${deviceFingerprint}`);
     await redis.del(`Last_Refresh_Token_OTP_${userId}_${deviceFingerprint}`);
@@ -348,9 +359,11 @@ const logout = async (req, res, next) => {
       message: "Successfully Logged Out",
     });
   } catch (err) {
-    next(err);
+    console.error(err);
+    next(err); // ส่งข้อผิดพลาดไปยัง middleware การจัดการข้อผิดพลาด
   }
 };
+
 
 const refresh = async (req, res, next) => {
   //console.log('req.user', req.user);
