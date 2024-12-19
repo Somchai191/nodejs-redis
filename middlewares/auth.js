@@ -26,32 +26,31 @@ const refreshTokenCatchError = (err, res) => {
 
 const verifyAccessToken = async (req, res, next) => {
   const role = req.headers["role"];
+  console.log("Role:", role); // ตรวจสอบค่าของ role
 
-  if (role != "superadmin") {
+  if (role !== "superadmin") {
     let macAddressRegex = new RegExp(
       /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})|([0-9a-fA-F]{4}.[0-9a-fA-F]{4}.[0-9a-fA-F]{4})$/
     );
 
-    if (!req.headers["mac-address"])
-      return res
-        .status(401)
-        .send({ status: "error", message: "MAC address is required!" });
+    if (!req.headers["mac-address"]) {
+      return res.status(401).send({ status: "error", message: "MAC address is required!" });
+    }
 
-    if (!req.headers["hardware-id"])
-      return res
-        .status(401)
-        .send({ status: "error", message: "Hardware ID is required!" });
+    if (!req.headers["hardware-id"]) {
+      return res.status(401).send({ status: "error", message: "Hardware ID is required!" });
+    }
 
-    if (macAddressRegex.test(req.headers["mac-address"]) === false)
-      return res
-        .status(401)
-        .send({ status: "error", message: "MAC address is invalid!" });
+    if (macAddressRegex.test(req.headers["mac-address"]) === false) {
+      return res.status(401).send({ status: "error", message: "MAC address is invalid!" });
+    }
 
-    if (!req.headers["authorization"])
+    if (!req.headers["authorization"]) {
       return res.status(401).send({
         status: "error",
         message: "TOKEN is required for authentication",
       });
+    }
     const accessToken = req.headers["authorization"].replace("Bearer ", "");
 
     jwt.verify(accessToken, JWT_ACCESS_TOKEN_SECRET, async (err, decoded) => {
@@ -85,9 +84,7 @@ const verifyAccessToken = async (req, res, next) => {
           `Last_Access_Token_${decoded.userId}_${req.headers["hardware-id"]}`
         );
         if (lastAccessToken !== accessToken) {
-          return res
-            .status(401)
-            .send({ status: "error", message: `Incorrect Access Token!` });
+          return res.status(401).send({ status: "error", message: `Incorrect Access Token!` });
         }
       }
       req.user = decoded;
@@ -95,19 +92,17 @@ const verifyAccessToken = async (req, res, next) => {
     });
   } else {
     const superAdminApiKey = req.headers["x-super-admin-api-key"];
-    if (
-      superAdminApiKey &&
-      superAdminApiKey === process.env.SUPER_ADMIN_API_KEY
-    ) {
-      console.log("you are in super admin mode : (from verifyAccessToken)");
+    if (superAdminApiKey === process.env.SUPER_ADMIN_API_KEY) {
+      console.log("You are in super admin mode.");
       return next();
     } else {
-      return res
-        .status(403)
-        .json({ message: "Unauthorized: Invalid API key for super admin" });
+      return res.status(403).json({
+        message: "Unauthorized: Invalid API key for super admin",
+      });
     }
   }
 };
+
 
 const verifyRefreshToken = (req, res, next) => {
   if (!req.headers["authorization"])
