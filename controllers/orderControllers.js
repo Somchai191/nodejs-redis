@@ -96,7 +96,7 @@ const addOrder = async (req, res) => {
         // สร้างคำสั่งซื้อใหม่
         const newOrder = new Order({
             userId,
-            userName: user.name, // เพิ่มชื่อผู้ใช้
+            userName: user.user.name, // เพิ่มชื่อผู้ใช้
             items: updatedItems,
             totalAmount: calculatedTotalAmount,
             status: status || "Pending",
