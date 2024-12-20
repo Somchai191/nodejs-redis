@@ -7,6 +7,11 @@ const orderSchema = new mongoose.Schema({
         required: true, 
         description: "ID ของผู้ใช้ที่สั่งซื้อ"
     },
+    userName: { 
+        type: String, 
+        required: true, 
+        description: "ชื่อของผู้ใช้ที่สั่งซื้อ" 
+    },
     orderDate: { 
         type: Date, 
         default: Date.now, 
