@@ -50,6 +50,7 @@ const getOrdersByUserId = async (req, res) => {
 // POST a new order
 
 const Product = require('../schemas/v1/product.schema'); // นำเข้าโมเดล Product
+const User = require("../schemas/v1/user.schema");
 
 const addOrder = async (req, res) => {
     const { userId, items, status, shippingAddress } = req.body;
@@ -60,6 +61,12 @@ const addOrder = async (req, res) => {
     }
 
     try {
+        // ดึงข้อมูลผู้ใช้จากฐานข้อมูล
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: `User with ID ${userId} not found` });
+        }
+
         // ดึงข้อมูลสินค้า (name และ price) สำหรับแต่ละ productId ที่ส่งมา
         const updatedItems = [];
         let calculatedTotalAmount = 0;
@@ -89,6 +96,7 @@ const addOrder = async (req, res) => {
         // สร้างคำสั่งซื้อใหม่
         const newOrder = new Order({
             userId,
+            userName: user.name, // เพิ่มชื่อผู้ใช้
             items: updatedItems,
             totalAmount: calculatedTotalAmount,
             status: status || "Pending",
