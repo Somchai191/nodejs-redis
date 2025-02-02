@@ -3,12 +3,17 @@ const chalk = require('chalk');
 require('dotenv').config({ path: `.env.${process.env.NODE_ENV}` });
 const { MONGODBDATABASEURI } = process.env;
 
-
 const connectMongoDB = async () => {
-    await mongoose.connect(MONGODBDATABASEURI, { dbName: 'healworld'}, { useNewUrlParser: true, useUnifiedTopology: true }).then(() => {
-        console.log(chalk.green("MongoDB Connected"))
+    await mongoose.connect(MONGODBDATABASEURI, {
+        dbName: 'healworld',
+        serverSelectionTimeoutMS: 30000, // เพิ่ม timeout เป็น 30 วินาที
     })
-    .catch(err => console.error(err));
+    .then(() => {
+        console.log(chalk.green("✅ MongoDB Connected"));
+    })
+    .catch(err => {
+        console.error(chalk.red("❌ MongoDB Connection Error: "), err);
+    });
 }
 
 module.exports = connectMongoDB;
